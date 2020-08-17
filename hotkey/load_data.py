@@ -20,17 +20,9 @@ import os
 import pickle
 import urllib.request
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, TensorDataset
 import torch
-from dataset import (
-    XY,
-    PartitionedDataset,
-    create_partitioned_dataset,
-    log_distribution,
-    sort_by_label,
-    sort_by_label_repeating,
-    shift,
-)
+from dataset import XY
 
 
 def download(filename: str, path: str) -> None:
@@ -46,28 +38,55 @@ def download(filename: str, path: str) -> None:
     print("Downloaded ", url)
 
 
-class hotkey_dataset(torch.utils.data.Dataset):
-    def __init__(self,train):
-        self.train = bool
-        self.trainlist = list(range(31000))
-        self.testlist = list(range(4000))
-        self.files = [
+def hotkey_load(dirname: str = "./data/hotkey/"):
+    """Load Hotkey dataset from disk."""
+    files = [
         "hotkey_train_x.pkl",
         "hotkey_train_y.pkl",
         "hotkey_test_x.pkl",
         "hotkey_test_y.pkl",
-        ]
-        self.data_dir = "./data/hotkey/"
-        self.paths = []
-        #self.transform = transform
-        for f in self.files:
-            if not os.path.exists(self.data_dir):
-                os.makedirs(self.data_dir)
-            path = os.path.join(self.data_dir, f)
-            if not os.path.exists(path):
-                download(f, path)
-            self.paths.append(path)
+    ]
+    paths = []
 
+    for f in files:
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        path = os.path.join(dirname, f)
+        if not os.path.exists(path):
+            download(f, path)
+        paths.append(path)
+
+    with open(paths[0], "rb") as input_file:
+        x_train = pickle.load(input_file)
+
+    with open(paths[1], "rb") as input_file:
+        y_train = pickle.load(input_file)
+
+    with open(paths[2], "rb") as input_file:
+        x_test = pickle.load(input_file)
+
+    with open(paths[3], "rb") as input_file:
+        y_test = pickle.load(input_file)
+    
+    xtrain = x_train[0:31000, :, :]
+    ytrain = y_train[0:31000]
+    xtest = x_test[0:4000, :, :]
+    ytest = y_test[0:4000]
+
+    return xtrain,ytrain,xtest,ytest
+
+x_train,y_train,x_test,y_test = hotkey_load() # output is numpy array
+
+class hotkey_dataset(Dataset):
+    def __init__(self,train):
+        self.train = bool
+        self.xtrain = x_train
+        self.ytrain = y_train
+        self.xtest = x_test
+        self.ytest = y_test
+        self.trainlist = list(range(31000))
+        self.testlist = list(range(4000))
+    
     def __len__(self):
         'Denotes the total number of samples'
 
@@ -75,40 +94,20 @@ class hotkey_dataset(torch.utils.data.Dataset):
             return len(self.trainlist)
         else:
             return len(self.testlist)
-    
+
     def __getitem__(self,index):
         'Generates one sample of data'
 
         if (self.train):
-
-            # Select sample
-            trainID = self.trainlist[index]
-
-            with open(self.paths[0], "rb") as input_file:
-                x_train = pickle.load(input_file)[self.trainlist][index]
-
-            with open(self.paths[1], "rb") as input_file:
-                y_train = pickle.load(input_file)[self.trainlist][index]
-
-            x = x_train
-            y = y_train
+            x = self.xtrain[index]
+            y = self.ytrain[index]
         else:
-            testID = self.testlist[index]
-
-            # Load data and get label
-
-            with open(paths[2], "rb") as input_file:
-                x_test = pickle.load(input_file)[self.testlist][index]
-            np.expand_dims(x_test,axis = 0)
-
-            with open(paths[3], "rb") as input_file:
-                y_test = pickle.load(input_file)[self.testlist][index]   
-
-            x = x_test
-            y = y_test
+            x = self.xtest[index]
+            y = self.ytest[index]
 
         x = torch.from_numpy(np.expand_dims(x,axis = 0))
         #y = torch.from_numpy(np.expand_dims(y,axis = 0))
         return x, y
+
 
 
