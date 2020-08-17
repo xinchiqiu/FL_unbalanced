@@ -28,7 +28,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Net(nn.Module):
 
-    def __init__(self) -> None:
+    def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, (20,8))
         self.pool = nn.MaxPool2d(2, 2)
@@ -39,7 +39,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(64, 128)
         self.fc2 = nn.Linear(128, 10)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = self.globalaveragepool(F.relu(self.conv3(x)))
