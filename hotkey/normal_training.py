@@ -28,7 +28,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Net(nn.Module):
 
-    def __init__(self) -> None:
+    def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, (20,8))
         self.pool = nn.MaxPool2d(2, 2)
@@ -39,7 +39,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(64, 128)
         self.fc2 = nn.Linear(128, 10)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = self.globalaveragepool(F.relu(self.conv3(x)))
@@ -81,8 +81,28 @@ def train(
 
             # print statistics
             running_loss += loss.item()
-            if i % 20 == 19:  # print every 2000 mini-batches
+            if i % 2000 == 1999:  # print every 2000 mini-batches
                 print("[%d, %5d] loss: %.3f" % (epoch + 1, i + 1, running_loss / 2000))
                 running_loss = 0.0
+      print('Finish Training')
 
 train(net,trainloader,2,DEVICE)
+
+PATH = './hotkey_net.pth'
+torch.save(net.state_dict(), PATH)
+net = Net()
+net.load_state_dict(torch.load(PATH))
+
+correct = 0
+total = 0
+with torch.no_grad():
+    for data in testloader:
+        images, labels = data
+        outputs = net(images)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+print('Accuracy of the network on the 10000 test images: %d %%' % (
+    100 * correct / total))
+
