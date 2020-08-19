@@ -186,4 +186,4 @@ def adjust_x_shape(nda: np.ndarray) -> np.ndarray:
 def adjust_y_shape(nda: np.ndarray) -> np.ndarray:
     """Turn shape (x, 1) into (x)."""
     nda_adjusted = np.reshape(nda, (nda.shape[0]))
-    return cast(np.ndarray, nda_adjusted)
+    return cast(np.ndarray, nda_adjusted)   
