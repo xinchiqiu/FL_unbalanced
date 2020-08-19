@@ -79,7 +79,7 @@ x_train,y_train,x_test,y_test = hotkey_load() # output is numpy array
 
 class hotkey_dataset(Dataset):
     def __init__(self,train):
-        self.train = bool
+        self.train = train
         self.xtrain = x_train
         self.ytrain = y_train
         self.xtest = x_test
