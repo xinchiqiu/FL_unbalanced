@@ -23,7 +23,7 @@ import torchvision
 import torchvision.models as models
 import flwr as fl
 import cifar
-from client import set_weights, get_weights
+from client_iid import set_weights, get_weights
 
 #from . import DEFAULT_SERVER_ADDRESS, cifar
 DEFAULT_SERVER_ADDRESS = "[::]:8080"
@@ -111,9 +111,12 @@ def get_eval_fn(
         """Use the entire CIFAR-10 test set for evaluation."""
         #model = cifar.load_model()
         #model.set_weights(weights)
+        
         model = models.resnet18()
         set_weights(model, weights)
         model.to(DEVICE)
+        model.eval()
+
         testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False)
         return cifar.test(model, testloader, device=DEVICE)
 
