@@ -23,10 +23,10 @@ def load_data() -> Tuple[torchvision.datasets.CIFAR10, torchvision.datasets.CIFA
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
     trainset = torchvision.datasets.CIFAR10(
-        root=DATA_ROOT, train=True, download=True, transform=transform
+        root="./data/cifar-10", train=True, download=True, transform=transform
     )
     testset = torchvision.datasets.CIFAR10(
-        root=DATA_ROOT, train=False, download=True, transform=transform
+        root="./data/cifar-10", train=False, download=True, transform=transform
     )
     return trainset, testset
 
@@ -91,7 +91,7 @@ class dataset_afterpartition(Dataset):
             y = self.ytest[index]
 
         return x, y
-
+"""
 ##### trying to train########################
 
 if __name__ == '__main__':
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     
     trainset = dataset_afterpartition(train=True, client_id = 0,num_partitions = 2 ,
         xy_train_partitions = xy_train_partitions, xy_test_partitions= xy_test_partitions)
-    testset = dataset_afterpartition(train=True,client_id = 0,num_partitions = 2 ,
+    testset = dataset_afterpartition(train=False,client_id = 0,num_partitions = 2 ,
         xy_train_partitions= xy_train_partitions, xy_test_partitions = xy_test_partitions)
 
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
@@ -157,7 +157,7 @@ if __name__ == '__main__':
             train_loss,
             train_acc
         ))
-"""
+
 batch_size = 32
 x_train_after, y_train_after, x_test_after , y_test_after = get_partition(IID_fraction = 1.0, nb_clients = 2)
 trainset = dataset_afterpartition(

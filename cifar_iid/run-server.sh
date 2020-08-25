@@ -14,13 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-#set -e
-#cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"/../../../
 
 
 # Start a Flower server
 python server.py \
-  --rounds=200 \
-  --sample_fraction=0.5 \
-  --min_sample_size=5 \
-  --min_num_clients=5 
+  --rounds=1 \
+  --sample_fraction=1 \
+  --min_sample_size=1 \
+  --min_num_clients=1 

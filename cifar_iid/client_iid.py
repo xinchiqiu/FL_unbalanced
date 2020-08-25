@@ -73,6 +73,8 @@ class CifarClient(fl.client.Client):
         # Get training config
         epochs = int(config["epochs"])
         batch_size = int(config["batch_size"])
+        rnd = int(config["epoch_global"])
+        lr = 0.001*0.98**(rnd)
 
         # Set model parameters
         #self.model.set_weights(weights)
@@ -87,7 +89,7 @@ class CifarClient(fl.client.Client):
             trainset, batch_size=batch_size, shuffle=False 
         )
 
-        cifar.train(self.model, trainloader, epochs=epochs, device=DEVICE)
+        cifar.train(self.model, trainloader, epochs=epochs, lr = lr, device=DEVICE)
 
         # Return the refined weights and the number of examples used for training
         #weights_prime: Weights = self.model.get_weights()
@@ -143,6 +145,9 @@ def main() -> None:
     parser.add_argument(
         "--nb_clients", type=int, default=10, help="Total number of clients",
     )
+    parser.add_argument(
+        "--iid_fraction", type=float, default=1.0, help="Total number of clients",
+    )
     args = parser.parse_args()
 
     # Configure logger
@@ -152,7 +157,7 @@ def main() -> None:
     #model = cifar.load_model()
     #model.to(DEVICE)
     #trainset, testset = cifar.load_data()
-    (xy_train_partitions, xy_test_partitions), xy_test = get_partition(iid_fraction = 1.0, num_partitions = args.nb_clients)
+    (xy_train_partitions, xy_test_partitions), xy_test = get_partition(iid_fraction = args.iid_fraction, num_partitions = args.nb_clients)
 
 
     # Start client

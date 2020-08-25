@@ -19,17 +19,18 @@
 #cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"/../../../
 
 SERVER_ADDRESS="[::]:8080"
-NUM_CLIENTS=10
+NUM_CLIENTS=1
 I_START=0
-I_END=9
+I_END=0
 
 echo "Starting $NUM_CLIENTS clients."
 for ((i = $I_START; i <= $I_END; i++))
 do
     echo "Starting client(cid=$i) with partition $i out of $NUM_CLIENTS clients."
-    python client.py \
+    python client_iid.py \
       --cid=$i \
       --server_address=$SERVER_ADDRESS \
-      --nb_clients=10 &
+      --nb_clients=1 \
+      --iid_fraction=1.0 &
 done
 echo "Started $NUM_CLIENTS clients."
