@@ -17,8 +17,8 @@
 
 
 # Start a Flower server
-python server.py \
-  --rounds=1 \
-  --sample_fraction=1 \
-  --min_sample_size=1 \
-  --min_num_clients=1 
+python /nfs-share/xinchi/FL_unbalanced/fashionmnist/server.py \
+  --rounds=100 \
+  --sample_fraction=0.5 \
+  --min_sample_size=5 \
+  --min_num_clients=5 
