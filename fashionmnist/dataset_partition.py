@@ -69,7 +69,7 @@ class dataset_afterpartition(Dataset):
         self.ytrain = xy_train_partitions[int(self.client_id)][1]
         self.xtest = xy_test_partitions[int(self.client_id)][0]
         self.ytest = xy_test_partitions[int(self.client_id)][1]
-        self.trainlist = list(range(60000))
+        self.trainlist = list(range(50000))
         self.testlist = list(range(10000))
         
     
