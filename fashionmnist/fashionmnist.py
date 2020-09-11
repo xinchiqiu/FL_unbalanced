@@ -31,17 +31,17 @@ from tqdm import tqdm
 import numpy as np
 import flwr as fl
 
-DATA_ROOT = "./data/fashionmnist"
-PATH = "./fashionmnist_net.pth"
+DATA_ROOT = "./FL_unbalanced/fashionmnist/data/fashionmnist"
+PATH = "./FL_unbalanced/fashionmnist/fashionmnist_net.pth"
 
 class Net(nn.Module):
 
     def __init__(self) -> None:
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, kernel_size = 5)
+        self.conv1 = nn.Conv2d(1, 32, kernel_size = 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(32, 64, 5)
-        self.fc1 = nn.Linear(64*5*5, 512)
+        self.fc1 = nn.Linear(1024, 512)
         #self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(512, 10)
 
@@ -78,10 +78,10 @@ def load_data() -> Tuple[torchvision.datasets.FashionMNIST, torchvision.datasets
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, ), (0.5, ),)]
     )
-    trainset = torchvision.datasets.CIFAR10(
+    trainset = torchvision.datasets.FashionMNIST(
         root=DATA_ROOT, train=True, download=True, transform=transform
     )
-    testset = torchvision.datasets.CIFAR10(
+    testset = torchvision.datasets.FashionMNIST(
         root=DATA_ROOT, train=False, download=True, transform=transform
     )
     return trainset, testset
@@ -97,7 +97,7 @@ def train(
     # Define loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay = 1e-05)
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma = 0.95)
+    #scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma = 0.95)
 
     print(f'Training {epochs} epoch(s) w/ {len(trainloader)} batches each')
 
@@ -107,7 +107,7 @@ def train(
         train_loss = 0.
         train_acc = 0.
 
-        scheduler.step()
+     #   scheduler.step()
 
         for i, data in enumerate(trainloader, 0):
             images, labels = data[0].to(device), data[1].to(device)
