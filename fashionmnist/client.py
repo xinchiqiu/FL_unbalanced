@@ -12,7 +12,7 @@ from torch.utils.data import Dataset, DataLoader, TensorDataset
 from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, ParametersRes, Weights
 
 #from . import DEFAULT_SERVER_ADDRESS
-DEFAULT_SERVER_ADDRESS = "[::]:8080"
+DEFAULT_SERVER_ADDRESS = "[::]:8000"
 # pylint: disable=no-member
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # pylint: enable=no-member

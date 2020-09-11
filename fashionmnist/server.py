@@ -6,7 +6,7 @@ import torchvision.models as models
 import flwr as fl
 import fashionmnist
 
-DEFAULT_SERVER_ADDRESS = "[::]:8080"
+DEFAULT_SERVER_ADDRESS = "[::]:8000"
 # pylint: disable=no-member
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # pylint: enable=no-member
@@ -77,7 +77,7 @@ def fit_config(rnd: int) -> Dict[str, str]:
     config = {
         "rnd": str(rnd),
         "epochs": str(1),
-        "batch_size": str(32),
+        "batch_size": str(10),
     }
     return config
 
