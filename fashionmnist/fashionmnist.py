@@ -42,8 +42,19 @@ class Net(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(32, 64, 5)
         self.fc1 = nn.Linear(1024, 512)
-        #self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(512, 10)
+        #self.fc2 =  nn.Linear(120, 84)
+        self.fc2 = nn.Linear(512, 10)
+        '''
+        nn.init.xavier_normal_(self.conv1.weight)
+        nn.init.zeros_(self.conv1.bias)
+        nn.init.xavier_normal_(self.conv2.weight)
+        nn.init.zeros_(self.conv2.bias)
+        nn.init.xavier_normal_(self.fc1.weight)
+        nn.init.zeros_(self.fc1.bias)
+        nn.init.xavier_normal_(self.fc2.weight)
+        nn.init.zeros_(self.fc2.bias)
+        '''
+
 
     # pylint: disable-msg=arguments-differ,invalid-name
     def forward(self, x: Tensor) -> Tensor:
@@ -53,7 +64,7 @@ class Net(nn.Module):
         x = x.view(x.size(0),-1)
         x = F.relu(self.fc1(x))
         #x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.fc2(x)
         return x
 
     def get_weights(self) -> fl.common.Weights:
@@ -97,7 +108,7 @@ def train(
     # Define loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay = 1e-05)
-    #scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma = 0.95)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma = 0.9)
 
     print(f'Training {epochs} epoch(s) w/ {len(trainloader)} batches each')
 
@@ -123,7 +134,10 @@ def train(
 
             train_loss += loss.item()
             train_acc += \
-                accuracy_score(labels.tolist(), outputs.argmax(dim=-1).tolist())
+                accuracy_score(labels.tolist(), outputs.argmax(dim=-1).tolist()
+                    )
+
+        scheduler.step()
 
         train_loss /= len(trainloader)
         train_acc /= len(trainloader)
