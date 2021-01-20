@@ -1,4 +1,4 @@
-# Copyright 2020 Adap GmbH. All Rights Reserved.
+#Copyright 2020 Adap GmbH. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,28 +37,10 @@ from datasets import *
 from transforms import *
 from mixup import *
 
-"""
-parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-#parser.add_argument("--train-dataset", type=str, default='datasets/speech_commands/train', help='path of train dataset')
-parser.add_argument("--valid-dataset", type=str, default='datasets/speech_commands/valid', help='path of validation dataset')
-parser.add_argument("--background-noise", type=str, default='datasets/speech_commands/train/_background_noise_', help='path of background noise')
-parser.add_argument("--comment", type=str, default='', help='comment in tensorboard title')
-parser.add_argument("--batch-size", type=int, default=128, help='batch size')
-parser.add_argument("--dataload-workers-nums", type=int, default=6, help='number of workers for dataloader')
-parser.add_argument("--weight-decay", type=float, default=1e-2, help='weight decay')
-parser.add_argument("--optim", choices=['sgd', 'adam'], default='sgd', help='choices of optimization algorithms')
-parser.add_argument("--learning-rate", type=float, default=1e-4, help='learning rate for optimization')
-#parser.add_argument("--lr-scheduler", choices=['plateau', 'step'], default='step', help='method to adjust learning rate')
-parser.add_argument("--lr-scheduler-patience", type=int, default=5, help='lr scheduler plateau: Number of epochs with no improvement after which learning rate will be reduced')
-parser.add_argument("--lr-scheduler-step-size", type=int, default=50, help='lr scheduler step: number of epochs of learning rate decay.')
-parser.add_argument("--lr-scheduler-gamma", type=float, default=0.1, help='learning rate is multiplied by the gamma to decrease it')
-parser.add_argument("--max-epochs", type=int, default=70, help='max number of epochs')
-parser.add_argument("--resume", type=str, help='checkpoint file to resume')
-parser.add_argument("--model", choices=models.available_models, default=models.available_models[0], help='model of NN')
-parser.add_argument("--input", choices=['mel32'], default='mel32', help='input of NN')
-#parser.add_argument('--mixup', action='store_true', help='use mixup')
-args = parser.parse_args()
-"""
+train_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/train/'
+valid_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/valid/'
+tes_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/test/'
+bg_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/train/_background_noise_'
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 use_gpu = torch.cuda.is_available()
@@ -67,42 +49,30 @@ n_mels = 32
 # get the data
 def load_trainset():
     data_aug_transform = Compose([ChangeAmplitude(), ChangeSpeedAndPitchAudio(), FixAudioLength(), ToSTFT(), StretchAudioOnSTFT(), TimeshiftAudioOnSTFT(), FixSTFTDimension()])
-    bg_dataset = BackgroundNoiseDataset('datasets/speech_commands/train/_background_noise_', data_aug_transform)
+    bg_dataset = BackgroundNoiseDataset(bg_path, data_aug_transform)
     add_bg_noise = AddBackgroundNoiseOnSTFT(bg_dataset)
     train_feature_transform = Compose([ToMelSpectrogramFromSTFT(n_mels=n_mels), DeleteSTFT(), ToTensor('mel_spectrogram', 'input')])
 
-    trainset = SpeechCommandsDataset('datasets/speech_commands/train',
+    trainset = SpeechCommandsDataset(train_path,
                                     Compose([LoadAudio(),
                                              data_aug_transform,
                                              add_bg_noise,
                                              train_feature_transform]))
     return trainset
 
-#weights = trainset.make_weights_for_balanced_classes()
-#sampler = WeightedRandomSampler(weights, len(weights))
-#train_dataloader = DataLoader(trainset, batch_size=args.batch_size, sampler=sampler,
-#                             pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
-
 
 def load_testset():
     feature_transform = Compose([ToMelSpectrogram(n_mels=n_mels), ToTensor('mel_spectrogram', 'input')])
     transform = Compose([LoadAudio(), FixAudioLength(), feature_transform])
 
-    testset = SpeechCommandsDataset(dataset_dir, transform, silence_percentage=0)
+    testset = SpeechCommandsDataset(test_path, transform, silence_percentage=0)
     return testset
-
-#test_dataloader = DataLoader(testset, batch_size=args.batch_size, sampler=None,
-#                            pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
 
 
 def load_model():
     model = models.create_model(model_name=models.available_models[0], num_classes=len(CLASSES), in_channels=1)
     return model()
 
-"""
-def get_lr():
-    return optimizer.param_groups[0]['lr']
-"""
 def train(
     net: torch.nn.Module,
     trainloader: torch.utils.data.DataLoader,
@@ -130,14 +100,16 @@ def train(
         
         pbar = tqdm(trainloader, unit="audios", unit_scale=trainloader.batch_size)
         for batch in pbar:
-            inputs = batch[0]
+            #inputs = batch[0]
+            inputs = batch['input']
             inputs = torch.unsqueeze(inputs, 1)
-            targets = batch[1]
-        
+            #targets = batch[1]
+            targets = batch['target']
+
             inputs = Variable(inputs, requires_grad=True)
             targets = Variable(targets, requires_grad=False)
-            #inputs.to(device)
-            #targets.to(device)
+            
+
             if use_gpu:
                 inputs = inputs.cuda()
                 targets = targets.cuda(non_blocking=True)
@@ -145,7 +117,8 @@ def train(
 
             # forward/backward
             outputs = net(inputs)
-            loss = criterion(outputs, torch.max(targets, 1)[1])
+            #loss = criterion(outputs, torch.max(targets, 1)[1])
+            loss = criterion(outputs,targets)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -175,7 +148,7 @@ def train(
 
 # testing function
 
-test_dataset_dir = 'datasets/speech_commands/test'
+
 def test(
     net: torch.nn.Module,
     testloader: torch.utils.data.DataLoader,
@@ -219,17 +192,9 @@ def test(
             total += targets.size(0)
             #filenames = batch['path']
         
-            """
-            for j in range(len(pred)):
-                fn = filenames[j]
-                predictions[fn] = pred[j][0]
-                probabilities[fn] = outputs.data[j].tolist()
-            """
     accuracy = correct/total
     epoch_loss = running_loss / it
     loss = running_loss
 
     return loss, accuracy
 
-#epoch_loss, accuracy = test(model,testloader,device)
-#print('accuracy',accuracy)
