@@ -19,7 +19,7 @@ import timeit
 
 import torch
 import torchvision
-
+import numpy as np
 import flwr as fl
 from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, ParametersRes, Weights
 
@@ -32,6 +32,21 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 use_gpu = torch.cuda.is_available()
 DEFAULT_SERVER_ADDRESS = "[::]:8080"
 # pylint: enable=no-member
+
+def get_weights(model: torch.nn.ModuleList) -> fl.common.Weights:
+    """Get model weights as a list of NumPy ndarrays."""
+    return [val.cpu().numpy() for _, val in model.state_dict().items()]
+
+
+def set_weights(model: torch.nn.ModuleList, weights: fl.common.Weights) -> None:
+    """Set model weights from a list of NumPy ndarrays."""
+    state_dict = OrderedDict(
+        {
+            k: torch.Tensor(np.atleast_1d(v))
+            for k, v in zip(model.state_dict().keys(), weights)
+        }
+    )
+    model.load_state_dict(state_dict, strict=True)
 
 
 class SpeechCommandClient(fl.client.Client):
@@ -52,7 +67,7 @@ class SpeechCommandClient(fl.client.Client):
     def get_parameters(self) -> ParametersRes:
         print(f"Client {self.cid}: get_parameters")
 
-        weights: Weights = self.model.get_weights()
+        weights: Weights = get_weights(self.model)
         parameters = fl.common.weights_to_parameters(weights)
         return ParametersRes(parameters=parameters)
 
@@ -69,7 +84,7 @@ class SpeechCommandClient(fl.client.Client):
         num_workers = 6
 
         # Set model parameters
-        self.model.set_weights(weights)
+        set_weights(self.model,weights)
 
         # Train model
         trainloader = torch.utils.data.DataLoader(trainset_after_partition, batch_size=batch_size, sampler=None,
@@ -77,7 +92,7 @@ class SpeechCommandClient(fl.client.Client):
         speech_command.train(self.model, trainloader, epochs=epochs, device=DEVICE)
 
         # Return the refined weights and the number of examples used for training
-        weights_prime: Weights = self.model.get_weights()
+        weights_prime: Weights = get_weights(self.model)
         params_prime = fl.common.weights_to_parameters(weights_prime)
         num_examples_train = len(self.trainset)
         fit_duration = timeit.default_timer() - fit_begin
@@ -94,7 +109,7 @@ class SpeechCommandClient(fl.client.Client):
         weights = fl.common.parameters_to_weights(ins.parameters)
 
         # Use provided weights to update the local model
-        self.model.set_weights(weights)
+        set_weights(self.model,weights)
 
         # Evaluate the updated model on the local dataset
         testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, sampler=None, pin_memory=use_gpu, num_workers=num_workers)
@@ -150,7 +165,7 @@ def main() -> None:
     idx = [i for i in range(len(label))]
     idx = np.array(idx)
     dataset  = (idx,label)
-    
+
     partitions, _ = create_dla_partitions(dataset,np.empty(0),args.num_partitions, args.concentration)
     trainset_after_partition = dataset_afterpartition(client_id = args.cid,num_partitions = args.num_partitions,partitions=partitions,trainset=trainset)
     
