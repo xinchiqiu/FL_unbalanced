@@ -39,7 +39,7 @@ from mixup import *
 
 train_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/train/'
 valid_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/valid/'
-tes_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/test/'
+test_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/test/'
 bg_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/train/_background_noise_'
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

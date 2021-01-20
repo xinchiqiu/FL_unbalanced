@@ -417,7 +417,6 @@ def train(net, trainloader,epoches,device):
 
     for epoch in range(epoches):
         lr_scheduler.step()
-        #print("epoch %3d with lr=%.02e" % (epoch, get_lr()))
         phase = 'train'
         net.train()  # Set model to training mode
 
