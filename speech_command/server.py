@@ -72,7 +72,7 @@ def main() -> None:
     args = parser.parse_args()
 
     # Load evaluation data
-    _, testset = speech_command.testset
+    testset = speech_command.testset()
 
     # Create strategy
     strategy = fl.server.strategy.FedAvg(

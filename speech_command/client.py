@@ -143,13 +143,13 @@ def main() -> None:
     # Load model and data
     model = load_model()
     model.to(DEVICE)
-    trainset = load_trainset
-    testset = load_testset
+    trainset = load_trainset()
+    testset = load_testset()
     partitions, _ = create_dla_partitions(dataset,np.empty(0),args.num_partitions, args.concentration)
     trainset_after_partition = dataset_afterpartition(client_id = args.cid,num_partitions = args.num_partitions,partitions=partitions,trainset=trainset)
     
     # Start client
-    client = SpeechCommandClient(args.cid, model, trainset, testset)
+    client = SpeechCommandClient(args.cid, model, trainset_after_partition, testset)
     fl.client.start_client(args.server_address, client)
 
 
