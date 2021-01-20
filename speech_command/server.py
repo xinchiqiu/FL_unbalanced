@@ -24,7 +24,7 @@ import torchvision
 import flwr as fl
 
 from . import DEFAULT_SERVER_ADDRESS, speech_command
-from speech_command import testset,trainset, test, load_modela
+from speech_command import testset,trainset, test, load_model
 
 # pylint: disable=no-member
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
