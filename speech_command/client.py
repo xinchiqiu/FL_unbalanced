@@ -145,6 +145,12 @@ def main() -> None:
     model.to(DEVICE)
     trainset = load_trainset()
     testset = load_testset()
+
+    label = np.load("label.npy")
+    idx = [i for i in range(len(label))]
+    idx = np.array(idx)
+    dataset  = (idx,label)
+    
     partitions, _ = create_dla_partitions(dataset,np.empty(0),args.num_partitions, args.concentration)
     trainset_after_partition = dataset_afterpartition(client_id = args.cid,num_partitions = args.num_partitions,partitions=partitions,trainset=trainset)
     
