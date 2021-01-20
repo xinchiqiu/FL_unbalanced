@@ -100,11 +100,11 @@ def train(
         
         pbar = tqdm(trainloader, unit="audios", unit_scale=trainloader.batch_size)
         for batch in pbar:
-            #inputs = batch[0]
-            inputs = batch['input']
+            inputs = batch[0]
+            #inputs = batch['input']
             inputs = torch.unsqueeze(inputs, 1)
-            #targets = batch[1]
-            targets = batch['target']
+            targets = batch[1]
+            #targets = batch['target']
 
             inputs = Variable(inputs, requires_grad=True)
             targets = Variable(targets, requires_grad=False)
@@ -117,8 +117,8 @@ def train(
 
             # forward/backward
             outputs = net(inputs)
-            #loss = criterion(outputs, torch.max(targets, 1)[1])
-            loss = criterion(outputs,targets)
+            loss = criterion(outputs, torch.max(targets, 1)[1])
+            #loss = criterion(outputs,targets)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
