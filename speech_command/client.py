@@ -18,14 +18,13 @@ import argparse
 import timeit
 
 import torch
-import torchvision
 import numpy as np
 import flwr as fl
 from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, ParametersRes, Weights
 
 #from . import DEFAULT_SERVER_ADDRESS, speech_command, partition
 from speech_command import load_trainset, load_testset, train, test, load_model
-from partition import create_dla_partitions, log_distribution,dataset_afterpartition
+from partition import create_dla_partitions, log_distribution, dataset_afterpartition
 
 from collections import OrderedDict
 

@@ -10,6 +10,7 @@ PartitionedDataset = Tuple[XYList, XYList]
 
 np.random.seed(2020)
 
+
 def float_to_int(i: float) -> int:
     """Return float as int but raise if decimal is dropped."""
     if not i.is_integer():

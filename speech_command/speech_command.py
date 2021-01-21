@@ -20,20 +20,13 @@ https://github.com/tugstugi/pytorch-speech-commands
 # mypy: ignore-errors
 # pylint: disable=W0223
 
-from collections import OrderedDict
 from typing import Tuple
-import argparse
-import time
-from tqdm import *
+from tqdm import tqdm
 import torch
 from torch.autograd import Variable
-from torch.utils.data import DataLoader
-from torch.utils.data.sampler import WeightedRandomSampler
-import torchvision
-from torchvision.transforms import *
-from tensorboardX import SummaryWriter
+from torchvision.transforms import Compose, ToTensor
 import models
-from datasets import *
+from datasets.speech_commands_dataset import SpeechCommandsDataset, BackgroundNoiseDataset, CLASSES
 from transforms import *
 # from mixup import *
 
@@ -50,6 +43,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 use_gpu = torch.cuda.is_available()
 n_mels = 32
 
+
 # get the data
 def load_trainset():
     data_aug_transform = Compose([ChangeAmplitude(), ChangeSpeedAndPitchAudio(), FixAudioLength(), ToSTFT(), StretchAudioOnSTFT(), TimeshiftAudioOnSTFT(), FixSTFTDimension()])
@@ -58,7 +52,7 @@ def load_trainset():
     train_feature_transform = Compose([ToMelSpectrogramFromSTFT(n_mels=n_mels), DeleteSTFT(), ToTensor('mel_spectrogram', 'input')])
 
     trainset = SpeechCommandsDataset(train_path,
-                                    Compose([LoadAudio(),
+                                     Compose([LoadAudio(),
                                              data_aug_transform,
                                              add_bg_noise,
                                              train_feature_transform]))
@@ -77,6 +71,7 @@ def load_model():
     model = models.create_model(model_name=models.available_models[0], num_classes=len(CLASSES), in_channels=1)
     return model
 
+
 def train(
     net: torch.nn.Module,
     trainloader: torch.utils.data.DataLoader,
@@ -93,8 +88,7 @@ def train(
     print(f'Training {epochs} epoch(s) w/ {len(trainloader)} batches each')
 
     for epoch in range(epochs):
-        
-        phase = 'train'
+
         net.train()  # Set model to training mode
 
         running_loss = 0.0
@@ -137,15 +131,6 @@ def train(
 
             correct += pred.eq(targets.data.view_as(pred)).sum().item()
             total += targets.size(0)
-
-            # print(f"correct: {correct}")
-            # print(f"total: {total}")
-            # update the progress bar
-            # pbar.set_postfix({
-            #     'loss': "%.05f" % (running_loss / it),
-            #     'acc': "%.02f%%" % (100*correct/total)
-            # })
-            
         
         accuracy = correct/total
         epoch_loss = running_loss / it
@@ -179,10 +164,6 @@ def test(
             inputs = torch.unsqueeze(inputs, 1)
             targets = batch['target']
 
-            n = inputs.size(0)
-            #inputs = Variable(inputs, volatile = True)
-            #targets = Variable(targets, requires_grad=False)
-
             if use_gpu:
                 inputs = inputs.cuda()
                 targets = targets.cuda(non_blocking=True)
@@ -203,7 +184,6 @@ def test(
             #filenames = batch['path']
         
     accuracy = correct/total
-    epoch_loss = running_loss / it
     loss = running_loss
 
     return loss, accuracy
