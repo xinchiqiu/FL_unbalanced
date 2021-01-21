@@ -27,11 +27,15 @@ from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, ParametersRes,
 from speech_command import load_trainset, load_testset, train, test, load_model
 from partition import create_dla_partitions, log_distribution,dataset_afterpartition
 
+
+DEFAULT_SERVER_ADDRESS = "[::]:8080"
 # pylint: disable=no-member
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 use_gpu = torch.cuda.is_available()
-DEFAULT_SERVER_ADDRESS = "[::]:8080"
 # pylint: enable=no-member
+
+CLASSES = 'unknown, silence, yes, no, up, down, left, right, on, off, stop, go'.split(', ')
+
 
 def get_weights(model: torch.nn.ModuleList) -> fl.common.Weights:
     """Get model weights as a list of NumPy ndarrays."""
