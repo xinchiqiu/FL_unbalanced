@@ -24,7 +24,7 @@ from typing import Tuple
 from tqdm import tqdm
 import torch
 from torch.autograd import Variable
-from torchvision.transforms import Compose, ToTensor
+from torchvision.transforms import Compose
 import models
 from datasets.speech_commands_dataset import SpeechCommandsDataset, BackgroundNoiseDataset, CLASSES
 from transforms import *
@@ -60,6 +60,7 @@ def load_trainset():
 
 
 def load_testset():
+    print("LOADING TESTSET")
     feature_transform = Compose([ToMelSpectrogram(n_mels=n_mels), ToTensor('mel_spectrogram', 'input')])
     transform = Compose([LoadAudio(), FixAudioLength(), feature_transform])
 
