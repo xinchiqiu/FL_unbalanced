@@ -76,7 +76,7 @@ testloader = DataLoader(testset, batch_size=args.batch_size, sampler=None,
 model = models.create_model(model_name=args.model, num_classes=len(CLASSES), in_channels=1)
 model.to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.weight_decay)
-lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=start_epoch-1)
+lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=-1)
 
 start_epoch = 0
 best_accuracy = 0
@@ -90,7 +90,6 @@ def train(epoch):
 
     print("epoch %3d with lr=%.02e" % (epoch, get_lr()))
     phase = 'train'
-    writer.add_scalar('%s/learning_rate' % phase,  get_lr(), epoch)
 
     model.train()  # Set model to training mode
 
@@ -129,7 +128,6 @@ def train(epoch):
         correct += pred.eq(targets.data.view_as(pred)).sum().item()
         total += targets.size(0)
 
-        writer.add_scalar('%s/loss' % phase, loss.item(), global_step)
 
         # update the progress bar
         pbar.set_postfix({
@@ -245,7 +243,7 @@ def test(
 
 
 print("training %s for Google speech commands..." % args.model)
-for epoch in range(start_epoch, args.max_epochs):
+for epoch in range(0, args.max_epochs):
     print('epoch = ', epoch)
     lr_scheduler.step()
     train(epoch)
