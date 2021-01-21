@@ -59,7 +59,7 @@ valid_dataset = SpeechCommandsDataset(args.valid_dataset,
                                          valid_feature_transform]))
 weights = trainset.make_weights_for_balanced_classes()
 sampler= WeightedRandomSampler(weights, len(weights))
-trainloader = DataLoader(trainset, batch_size=args.batch_size, sampler=sampler,
+train_dataloader = DataLoader(trainset, batch_size=args.batch_size, sampler=sampler,
                              pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
 valid_dataloader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False,
                               pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
@@ -77,6 +77,7 @@ model = models.create_model(model_name=args.model, num_classes=len(CLASSES), in_
 model.to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.weight_decay)
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=-1)
+criterion = torch.nn.CrossEntropyLoss()
 
 start_epoch = 0
 best_accuracy = 0
@@ -88,9 +89,7 @@ global_step = 0
 def train(epoch):
     global global_step
 
-    print("epoch %3d with lr=%.02e" % (epoch, get_lr()))
     phase = 'train'
-
     model.train()  # Set model to training mode
 
     running_loss = 0.0
