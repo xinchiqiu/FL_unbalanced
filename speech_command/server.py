@@ -17,15 +17,17 @@
 
 import argparse
 from typing import Callable, Dict, Optional, Tuple
+from collections import OrderedDict
+import numpy as np
 
 import torch
 import torchvision
 
 import flwr as fl
 
-from . import DEFAULT_SERVER_ADDRESS, speech_command
-from speech_command import testset,trainset, test, load_model
-DEFAULT_SERVER_ADDRESS = "[::]:8083"
+# import speech_command
+from speech_command import load_testset, test, load_model
+DEFAULT_SERVER_ADDRESS = "[::]:8080"
 
 # pylint: disable=no-member
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -73,7 +75,7 @@ def main() -> None:
     args = parser.parse_args()
 
     # Load evaluation data
-    testset = speech_command.testset()
+    testset = load_testset()
 
     # Create strategy
     strategy = fl.server.strategy.FedAvg(
@@ -92,6 +94,16 @@ def main() -> None:
         strategy=strategy,
     )
 
+def set_weights(model: torch.nn.ModuleList, weights: fl.common.Weights) -> None:
+    """Set model weights from a list of NumPy ndarrays."""
+    state_dict = OrderedDict(
+        {
+            k: torch.Tensor(np.atleast_1d(v))
+            for k, v in zip(model.state_dict().keys(), weights)
+        }
+    )
+    model.load_state_dict(state_dict, strict=True)
+
 def fit_config(rnd: int) -> Dict[str, str]:
     """Return a configuration with static batch size and (local) epochs."""
     config = {
@@ -109,10 +121,11 @@ def get_eval_fn(
     def evaluate(weights: fl.common.Weights) -> Optional[Tuple[float, float]]:
         """Use the entire CIFAR-10 test set for evaluation."""
         model = load_model()
-        model.set_weights(weights)
+        set_weights(model, weights)
         model.to(DEVICE)
         num_workers = 6
-        testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, sampler=None, pin_memory=use_gpu, num_workers=num_workers)
+        # testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, sampler=None, pin_memory=use_gpu, num_workers=num_workers)
+        testloader = torch.utils.data.DataLoader(testset, batch_size=256)
         return test(model, testloader, device=DEVICE)
 
     return evaluate

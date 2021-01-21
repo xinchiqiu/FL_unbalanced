@@ -27,6 +27,7 @@ from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, ParametersRes,
 from speech_command import load_trainset, load_testset, train, test, load_model
 from partition import create_dla_partitions, log_distribution,dataset_afterpartition
 
+from collections import OrderedDict
 
 DEFAULT_SERVER_ADDRESS = "[::]:8080"
 # pylint: disable=no-member
@@ -91,9 +92,9 @@ class SpeechCommandClient(fl.client.Client):
         set_weights(self.model,weights)
 
         # Train model
-        trainloader = torch.utils.data.DataLoader(trainset_after_partition, batch_size=batch_size, sampler=None,
+        trainloader = torch.utils.data.DataLoader(self.trainset, batch_size=batch_size, sampler=None,
                               pin_memory=use_gpu, num_workers=num_workers)
-        speech_command.train(self.model, trainloader, epochs=epochs, device=DEVICE)
+        train(self.model, trainloader, epochs=epochs, device=DEVICE)
 
         # Return the refined weights and the number of examples used for training
         weights_prime: Weights = get_weights(self.model)
@@ -118,7 +119,7 @@ class SpeechCommandClient(fl.client.Client):
         # Evaluate the updated model on the local dataset
         testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, sampler=None, pin_memory=use_gpu, num_workers=num_workers)
 
-        loss, accuracy = speech_command.test(self.model, testloader, device=DEVICE)
+        loss, accuracy = test(self.model, testloader, device=DEVICE)
 
         # Return the number of evaluation examples and the evaluation result (loss)
         return EvaluateRes(
@@ -151,7 +152,7 @@ def main() -> None:
     parser.add_argument(
         "--concentration",
         type=float,
-        default = 0.5,.
+        default = 0.5,
         help="concentration for LDA alpha",
     )
     args = parser.parse_args()

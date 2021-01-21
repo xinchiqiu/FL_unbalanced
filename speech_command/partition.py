@@ -2,6 +2,8 @@ from typing import List, Optional, Tuple, cast
 
 import numpy as np
 
+from torch.utils.data import Dataset
+
 XY = Tuple[np.ndarray, np.ndarray]
 XYList = List[XY]
 PartitionedDataset = Tuple[XYList, XYList]

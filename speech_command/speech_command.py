@@ -35,12 +35,16 @@ from tensorboardX import SummaryWriter
 import models
 from datasets import *
 from transforms import *
-from mixup import *
+# from mixup import *
 
-train_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/train/'
-valid_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/valid/'
-test_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/test/'
-bg_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/train/_background_noise_'
+train_path = 'datasets/speech_commands/train/'
+# train_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/train/'
+valid_path = 'datasets/speech_commands/valid/'
+# valid_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/valid/'
+test_path = 'datasets/speech_commands/test/'
+# test_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/test/'
+bg_path = 'datasets/speech_commands/train/_background_noise_'
+# bg_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/train/_background_noise_'
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 use_gpu = torch.cuda.is_available()
@@ -71,7 +75,7 @@ def load_testset():
 
 def load_model():
     model = models.create_model(model_name=models.available_models[0], num_classes=len(CLASSES), in_channels=1)
-    return model()
+    return model
 
 def train(
     net: torch.nn.Module,
@@ -81,7 +85,7 @@ def train(
 ) -> None:
     #global global_step
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.9, weight_decay=1e-2)
+    optimizer = torch.optim.SGD(net.parameters(), lr=1e-4, momentum=0.9, weight_decay=1e-2)
     #optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-2)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1, last_epoch=-1)
     criterion = torch.nn.CrossEntropyLoss()
@@ -98,13 +102,16 @@ def train(
         correct = 0
         total = 0
         
-        pbar = tqdm(trainloader, unit="audios", unit_scale=trainloader.batch_size)
-        for batch in pbar:
+        # pbar = tqdm(trainloader, unit="audios", unit_scale=trainloader.batch_size, desc= 'Train')
+        for batch in trainloader:
             inputs = batch[0]
+            # print(f"inputs.shape: {inputs.shape}")
             #inputs = batch['input']
-            inputs = torch.unsqueeze(inputs, 1)
-            targets = batch[1]
+            inputs = torch.unsqueeze(inputs, 1) # adding extra (channel) dimension
+            targets = batch[1].squeeze() # targets seem to come in shape [batch_size, 1], here we remove the second dimension
             #targets = batch['target']
+            # print(f"inputs.shape: {inputs.shape}")
+            # print(f"targets.shape: {targets.shape}")
 
             inputs = Variable(inputs, requires_grad=True)
             targets = Variable(targets, requires_grad=False)
@@ -117,7 +124,7 @@ def train(
 
             # forward/backward
             outputs = net(inputs)
-            loss = criterion(outputs, torch.max(targets, 1)[1])
+            loss = criterion(outputs, targets)
             #loss = criterion(outputs,targets)
             optimizer.zero_grad()
             loss.backward()
@@ -128,14 +135,16 @@ def train(
             running_loss += loss.item()
             pred = outputs.data.max(1, keepdim=True)[1]
 
-            correct += pred.eq(targets.data.view_as(pred)).sum()
+            correct += pred.eq(targets.data.view_as(pred)).sum().item()
             total += targets.size(0)
 
+            # print(f"correct: {correct}")
+            # print(f"total: {total}")
             # update the progress bar
-            pbar.set_postfix({
-                'loss': "%.05f" % (running_loss / it),
-                'acc': "%.02f%%" % (100*correct/total)
-            })
+            # pbar.set_postfix({
+            #     'loss': "%.05f" % (running_loss / it),
+            #     'acc': "%.02f%%" % (100*correct/total)
+            # })
             
         
         accuracy = correct/total
@@ -160,14 +169,15 @@ def test(
     it = 0
     correct = 0
     total = 0
-    criterion = nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss()
     
     with torch.no_grad():
-        pbar = tqdm(testloader, unit="audios", unit_scale=testloader.batch_size)
+        pbar = tqdm(testloader, unit="audios", unit_scale=testloader.batch_size, desc='Test')
         for batch in pbar:
-            inputs = batch['inputs']
+            # print(batch.keys())
+            inputs = batch['input']
             inputs = torch.unsqueeze(inputs, 1)
-            targets = batch['targets']
+            targets = batch['target']
 
             n = inputs.size(0)
             #inputs = Variable(inputs, volatile = True)
@@ -188,7 +198,7 @@ def test(
             _, predicted = torch.max(outputs.data, 1)  # pylint: disable=no-member
             #pred = outputs.data.max(1, keepdim=True)[1]
             #correct += pred.eq(targets.data.view_as(pred)).sum()
-            correct += (predicted == labels).sum().item()
+            correct += (predicted == targets).sum().item()
             total += targets.size(0)
             #filenames = batch['path']
         

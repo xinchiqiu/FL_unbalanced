@@ -17,7 +17,7 @@
 
 # Start a Flower server
 python server.py \
-  --rounds=2 \
+  --rounds=10 \
   --sample_fraction=0.5 \
-  --min_sample_size=1 \
-  --min_num_clients=1
+  --min_sample_size=2 \
+  --min_num_clients=2
