@@ -246,7 +246,7 @@ for epoch in range(0, args.max_epochs):
     print('epoch = ', epoch)
     lr_scheduler.step()
     train(epoch)
-    epoch_loss = valid(epoch)
+    #epoch_loss = valid(epoch)
     epoch_loss_test, accuracy = test(model,testloader,device)     
     #time_elapsed = time.time() - since
     #time_str = 'total time elapsed: {:.0f}h {:.0f}m {:.0f}s '.format(time_elapsed // 3600, time_elapsed % 3600 // 60, time_elapsed % 60)
