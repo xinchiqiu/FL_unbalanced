@@ -139,7 +139,7 @@ def train(epoch):
 
 
 def valid(epoch):
-    global best_accuracy, best_loss, global_step
+    global global_step
 
     phase = 'valid'
     model.eval()  # Set model to evaluate mode
@@ -170,8 +170,8 @@ def valid(epoch):
         it += 1
         global_step += 1
         running_loss += loss.item()
-        pred = outputs.data.max(1, keepdim=True)[1]
-        correct += pred.eq(targets.data.view_as(pred)).sum()
+        _, predicted = torch.max(outputs.data, 1)
+        correct += (predicted == targets).sum().item()
         total += targets.size(0)
 
          # update the progress bar
@@ -179,7 +179,6 @@ def valid(epoch):
             'loss': "%.05f" % (running_loss / it),
             'acc': "%.02f%%" % (100*correct/total)
         })
-    return epoch_loss
 
 
 
@@ -190,9 +189,11 @@ def test(
     net: torch.nn.Module,
     testloader: torch.utils.data.DataLoader,
     device: torch.device,  # pylint: disable=no-member
+    epoch,
 ) -> Tuple[float, float]:
     """Validate the network on the entire test set."""
-
+    global global_step
+    
     running_loss = 0.0
     it = 0
     correct = 0
@@ -228,17 +229,11 @@ def test(
             total += targets.size(0)
             #filenames = batch['path']
 
-        """
-        for j in range(len(pred)):
-            fn = filenames[j]
-            predictions[fn] = pred[j][0]
-            probabilities[fn] = outputs.data[j].tolist()
-        """
     accuracy = correct/total
     epoch_loss = running_loss / it
     print('test accuracy=', accuracy)
 
-    return accuracy
+    return epoch_loss, accuracy
 
 
 print("training %s for Google speech commands..." % args.model)
@@ -246,8 +241,8 @@ for epoch in range(0, args.max_epochs):
     print('epoch = ', epoch)
     lr_scheduler.step()
     train(epoch)
-    #epoch_loss = valid(epoch)
-    epoch_loss_test, accuracy = test(model,testloader,device)     
+    valid(epoch)
+    epoch_loss_test, accuracy = test(model,testloader,device,epoch)     
     #time_elapsed = time.time() - since
     #time_str = 'total time elapsed: {:.0f}h {:.0f}m {:.0f}s '.format(time_elapsed // 3600, time_elapsed % 3600 // 60, time_elapsed % 60)
     #print("%s, best accuracy: %.02f%%, best loss %f" % (time_str, 100*best_accuracy, best_loss))
