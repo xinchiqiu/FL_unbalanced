@@ -35,7 +35,7 @@ from tensorboardX import SummaryWriter
 import models
 from datasets import *
 from transforms import *
-from mixup import *
+#from mixup import *
 
 train_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/train/'
 valid_path = '/nfs-share/xinchi/flower/src/py/flwr_example/speech_12/datasets/speech_commands/valid/'
