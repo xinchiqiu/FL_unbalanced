@@ -92,7 +92,7 @@ class SpeechCommandClient(fl.client.Client):
 
         # Train model
         trainloader = torch.utils.data.DataLoader(self.trainset, batch_size=batch_size, sampler=None,
-                              pin_memory=use_gpu, num_workers=num_workers)
+                              shuffle=True, pin_memory=use_gpu, num_workers=num_workers)
         train(self.model, trainloader, epochs=epochs, device=DEVICE)
 
         # Return the refined weights and the number of examples used for training
@@ -174,7 +174,7 @@ def main() -> None:
     trainset_after_partition = dataset_afterpartition(client_id = args.cid,num_partitions = args.num_partitions,partitions=partitions,trainset=trainset)
     
     # Start client
-    client = SpeechCommandClient(args.cid, model, trainset_after_partition, testset)
+    client = SpeechCommandClient(args.cid, model, trainset, testset)
     fl.client.start_client(args.server_address, client)
 
 

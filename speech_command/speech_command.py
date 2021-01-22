@@ -81,7 +81,7 @@ def train(
 ) -> None:
     #global global_step
 
-    optimizer = torch.optim.SGD(net.parameters(), lr=1e-4, momentum=0.9, weight_decay=1e-2)
+    optimizer = torch.optim.SGD(net.parameters(), lr=0.01, momentum=0.9, weight_decay=1e-2)
     #optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-2)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1, last_epoch=-1)
     criterion = torch.nn.CrossEntropyLoss()
@@ -99,11 +99,11 @@ def train(
         
         # pbar = tqdm(trainloader, unit="audios", unit_scale=trainloader.batch_size, desc= 'Train')
         for batch in trainloader:
-            inputs = batch[0]
+            inputs = batch["input"]
             # print(f"inputs.shape: {inputs.shape}")
             #inputs = batch['input']
             inputs = torch.unsqueeze(inputs, 1) # adding extra (channel) dimension
-            targets = batch[1].squeeze() # targets seem to come in shape [batch_size, 1], here we remove the second dimension
+            targets = batch["target"].squeeze() # targets seem to come in shape [batch_size, 1], here we remove the second dimension
             #targets = batch['target']
             # print(f"inputs.shape: {inputs.shape}")
             # print(f"targets.shape: {targets.shape}")
@@ -138,7 +138,7 @@ def train(
         
         # step after one epoch
         lr_scheduler.step()
-
+    print(f"total: {total}")
     return epoch_loss, accuracy
 
 # testing function

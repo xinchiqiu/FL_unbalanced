@@ -18,19 +18,4 @@
 #set -e
 #cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"/../../../
 
-SERVER_ADDRESS="[::]:8080"
-NUM_CLIENTS=2
-
-
-echo "Starting $NUM_CLIENTS clients."
-for ((i = 0; i < $NUM_CLIENTS; i++))
-do
-    echo "Starting client(cid=$i) with partition $i out of $NUM_CLIENTS clients."
-    python client.py \
-      --cid=$i \
-      --server_address=$SERVER_ADDRESS \
-      --num_partitions=$NUM_CLIENTS \
-      --concentration=1000 &
-
-done
-echo "Started $NUM_CLIENTS clients."
+python client.py --cid=0 --num_partitions=1 --concentration=1000

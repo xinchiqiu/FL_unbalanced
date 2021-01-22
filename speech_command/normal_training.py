@@ -17,13 +17,15 @@ from datasets import *
 from transforms import *
 # from mixup import *
 
+from speech_command import load_testset, load_trainset
+
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--train-dataset", type=str, default='datasets/speech_commands/train', help='path of train dataset')
 parser.add_argument("--valid-dataset", type=str, default='datasets/speech_commands/valid', help='path of validation dataset')
 parser.add_argument("--background-noise", type=str, default='datasets/speech_commands/train/_background_noise_', help='path of background noise')
 parser.add_argument("--comment", type=str, default='', help='comment in tensorboard title')
-parser.add_argument("--batch-size", type=int, default=128, help='batch size')
-parser.add_argument("--dataload-workers-nums", type=int, default=6, help='number of workers for dataloader')
+parser.add_argument("--batch-size", type=int, default=384, help='batch size')
+parser.add_argument("--dataload-workers-nums", type=int, default=8, help='number of workers for dataloader')
 parser.add_argument("--weight-decay", type=float, default=1e-2, help='weight decay')
 parser.add_argument("--optim", choices=['sgd', 'adam'], default='sgd', help='choices of optimization algorithms')
 parser.add_argument("--learning-rate", type=float, default=1e-4, help='learning rate for optimization')
@@ -46,12 +48,15 @@ n_mels = 32
 data_aug_transform = Compose([ChangeAmplitude(), ChangeSpeedAndPitchAudio(), FixAudioLength(), ToSTFT(), StretchAudioOnSTFT(), TimeshiftAudioOnSTFT(), FixSTFTDimension()])
 bg_dataset = BackgroundNoiseDataset(args.background_noise, data_aug_transform)
 add_bg_noise = AddBackgroundNoiseOnSTFT(bg_dataset)
-train_feature_transform = Compose([ToMelSpectrogramFromSTFT(n_mels=n_mels), DeleteSTFT(), ToTensor('mel_spectrogram', 'input')])
-trainset = SpeechCommandsDataset(args.train_dataset,
-                                Compose([LoadAudio(),
-                                         data_aug_transform,
-                                         add_bg_noise,
-                                         train_feature_transform]))
+#train_feature_transform = Compose([ToMelSpectrogramFromSTFT(n_mels=n_mels), DeleteSTFT(), ToTensor('mel_spectrogram', 'input')])
+#trainset = SpeechCommandsDataset(args.train_dataset,
+#                                Compose([LoadAudio(),
+#                                         data_aug_transform,
+#                                         add_bg_noise,
+#                                         train_feature_transform]))
+
+trainset = load_trainset()
+
 valid_feature_transform = Compose([ToMelSpectrogram(n_mels=n_mels), ToTensor('mel_spectrogram', 'input')])
 valid_dataset = SpeechCommandsDataset(args.valid_dataset,
                                 Compose([LoadAudio(),
@@ -67,7 +72,7 @@ valid_dataloader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle
 feature_transform = Compose([ToMelSpectrogram(n_mels=n_mels), ToTensor('mel_spectrogram', 'input')])
 transform = Compose([LoadAudio(), FixAudioLength(), feature_transform])
 dataset_dir = 'datasets/speech_commands/test'
-testset = SpeechCommandsDataset(dataset_dir, transform, silence_percentage=0)
+testset = load_testset() ##SpeechCommandsDataset(dataset_dir, transform, silence_percentage=0)
 testloader = DataLoader(testset, batch_size=args.batch_size, sampler=None,
                             pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
 
@@ -97,9 +102,9 @@ def train(epoch):
     correct = 0
     total = 0
 
-    pbar = tqdm(train_dataloader, unit="audios", unit_scale=train_dataloader.batch_size)
+    print(f"trainin examples: {len(train_dataloader.dataset)}")
+    pbar = tqdm(train_dataloader, unit="audios", unit_scale=valid_dataloader.batch_size)
     for batch in pbar:
-        print(batch.keys())
         inputs = batch['input']
         inputs = torch.unsqueeze(inputs, 1)
         targets = batch['target']

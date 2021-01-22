@@ -108,7 +108,7 @@ def fit_config(rnd: int) -> Dict[str, str]:
     config = {
         "epoch_global": str(rnd),
         "epochs": str(1),
-        "batch_size": str(128),
+        "batch_size": str(384),
     }
     return config
 
@@ -124,7 +124,7 @@ def get_eval_fn(
         model.to(DEVICE)
         num_workers = 6
         # testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, sampler=None, pin_memory=use_gpu, num_workers=num_workers)
-        testloader = torch.utils.data.DataLoader(testset, batch_size=256)
+        testloader = torch.utils.data.DataLoader(testset, batch_size=384, num_workers=8)
         return test(model, testloader, device=DEVICE)
 
     return evaluate
