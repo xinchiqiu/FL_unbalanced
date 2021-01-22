@@ -91,7 +91,7 @@ class SpeechCommandClient(fl.client.Client):
         set_weights(self.model,weights)
 
         # Train model
-        trainloader = torch.utils.data.DataLoader(trainset_after_partition, batch_size=batch_size, sampler=None,
+        trainloader = torch.utils.data.DataLoader(self.trainset, batch_size=batch_size, sampler=None,
                               pin_memory=use_gpu, num_workers=num_workers)
         speech_command.train(self.model, trainloader, epochs=epochs, device=DEVICE)
 

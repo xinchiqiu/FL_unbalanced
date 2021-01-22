@@ -75,7 +75,7 @@ testloader = DataLoader(testset, batch_size=args.batch_size, sampler=None,
 # set up model
 model = models.create_model(model_name=args.model, num_classes=len(CLASSES), in_channels=1)
 model.to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.weight_decay)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=args.weight_decay)
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=-1)
 criterion = torch.nn.CrossEntropyLoss()
 
@@ -229,6 +229,12 @@ def test(
             total += targets.size(0)
             #filenames = batch['path']
 
+        """
+        for j in range(len(pred)):
+            fn = filenames[j]
+            predictions[fn] = pred[j][0]
+            probabilities[fn] = outputs.data[j].tolist()
+        """
     accuracy = correct/total
     epoch_loss = running_loss / it
     print('test accuracy=', accuracy)
