@@ -15,7 +15,7 @@ from tensorboardX import SummaryWriter
 import models
 from datasets import *
 from transforms import *
-from mixup import *
+# from mixup import *
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--train-dataset", type=str, default='datasets/speech_commands/train', help='path of train dataset')
@@ -59,7 +59,7 @@ valid_dataset = SpeechCommandsDataset(args.valid_dataset,
                                          valid_feature_transform]))
 weights = trainset.make_weights_for_balanced_classes()
 sampler= WeightedRandomSampler(weights, len(weights))
-trainloader = DataLoader(trainset, batch_size=args.batch_size, sampler=sampler,
+train_dataloader = DataLoader(trainset, batch_size=args.batch_size, sampler=sampler,
                              pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
 valid_dataloader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False,
                               pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
@@ -75,10 +75,9 @@ testloader = DataLoader(testset, batch_size=args.batch_size, sampler=None,
 # set up model
 model = models.create_model(model_name=args.model, num_classes=len(CLASSES), in_channels=1)
 model.to(device)
-
-
-def get_lr():
-    return optimizer.param_groups[0]['lr']
+optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=args.weight_decay)
+lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=-1)
+criterion = torch.nn.CrossEntropyLoss()
 
 start_epoch = 0
 best_accuracy = 0
@@ -86,77 +85,11 @@ best_loss = 1e100
 global_step = 0
 
 
-"""
-def train(net, trainloader,epoches,device):
-    #global global_step
-
-    start_epoch = 0
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.weight_decay)
-    #optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=start_epoch-1)
-    criterion = torch.nn.CrossEntropyLoss()
-
-    #print(f'Training {epochs} epoch(s) w/ {len(trainloader)} batches each')
-
-    for epoch in range(epoches):
-        lr_scheduler.step()
-        #print("epoch %3d with lr=%.02e" % (epoch, get_lr()))
-        phase = 'train'
-        net.train()  # Set model to training mode
-
-        running_loss = 0.0
-        it = 0
-        correct = 0
-        total = 0
-
-        pbar = tqdm(trainloader, unit="audios", unit_scale=trainloader.batch_size)
-        for batch in pbar:
-            inputs = batch['input']
-            inputs = torch.unsqueeze(inputs, 1)
-            targets = batch['target']
-
-            inputs = Variable(inputs, requires_grad=True)
-            targets = Variable(targets, requires_grad=False)
-            
-            if use_gpu:
-                inputs = inputs.cuda()
-                targets = targets.cuda(non_blocking=True)
-
-
-            # forward/backward
-            outputs = net(inputs)
-            loss = criterion(outputs, targets)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            # statistics
-            it += 1
-            running_loss += loss.item()
-            pred = outputs.data.max(1, keepdim=True)[1]
-
-            correct += pred.eq(targets.data.view_as(pred)).sum()
-            total += targets.size(0)
-
-            # update the progress bar
-            pbar.set_postfix({
-                'loss': "%.05f" % (running_loss / it),
-                'acc': "%.02f%%" % (100*correct/total)
-            })
-
-
-        accuracy = correct/total
-        epoch_loss = running_loss / it
-        # step after one epoch
-        
-"""
+          
 def train(epoch):
     global global_step
 
-    print("epoch %3d with lr=%.02e" % (epoch, get_lr()))
     phase = 'train'
-    writer.add_scalar('%s/learning_rate' % phase,  get_lr(), epoch)
-
     model.train()  # Set model to training mode
 
     running_loss = 0.0
@@ -166,13 +99,12 @@ def train(epoch):
 
     pbar = tqdm(train_dataloader, unit="audios", unit_scale=train_dataloader.batch_size)
     for batch in pbar:
+        print(batch.keys())
         inputs = batch['input']
         inputs = torch.unsqueeze(inputs, 1)
         targets = batch['target']
 
-        if args.mixup:
-            inputs, targets = mixup(inputs, targets, num_classes=len(CLASSES))
-
+    
         inputs = Variable(inputs, requires_grad=True)
         targets = Variable(targets, requires_grad=False)
 
@@ -182,10 +114,7 @@ def train(epoch):
 
         # forward/backward
         outputs = model(inputs)
-        if args.mixup:
-            loss = mixup_cross_entropy_loss(outputs, targets)
-        else:
-            loss = criterion(outputs, targets)
+        loss = criterion(outputs, targets)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -195,11 +124,10 @@ def train(epoch):
         global_step += 1
         running_loss += loss.item()
         pred = outputs.data.max(1, keepdim=True)[1]
-
-        correct += pred.eq(targets.data.view_as(pred)).sum()
+        
+        correct += pred.eq(targets.data.view_as(pred)).sum().item()
         total += targets.size(0)
 
-        writer.add_scalar('%s/loss' % phase, loss.item(), global_step)
 
         # update the progress bar
         pbar.set_postfix({
@@ -212,7 +140,7 @@ def train(epoch):
 
 
 def valid(epoch):
-    global best_accuracy, best_loss, global_step
+    global global_step
 
     phase = 'valid'
     model.eval()  # Set model to evaluate mode
@@ -243,8 +171,8 @@ def valid(epoch):
         it += 1
         global_step += 1
         running_loss += loss.item()
-        pred = outputs.data.max(1, keepdim=True)[1]
-        correct += pred.eq(targets.data.view_as(pred)).sum()
+        _, predicted = torch.max(outputs.data, 1)
+        correct += (predicted == targets).sum().item()
         total += targets.size(0)
 
          # update the progress bar
@@ -252,19 +180,8 @@ def valid(epoch):
             'loss': "%.05f" % (running_loss / it),
             'acc': "%.02f%%" % (100*correct/total)
         })
-    return epoch_loss
 
-print("training %s for Google speech commands..." % args.model)
-for epoch in range(start_epoch, args.max_epochs):
-    
-    lr_scheduler.step()
-    train(epoch)
-    epoch_loss = valid(epoch)
 
-    time_elapsed = time.time() - since
-    time_str = 'total time elapsed: {:.0f}h {:.0f}m {:.0f}s '.format(time_elapsed // 3600, time_elapsed % 3600 // 60, time_elapsed % 60)
-    print("%s, best accuracy: %.02f%%, best loss %f" % (time_str, 100*best_accuracy, best_loss))
-print("finished training")
 
 # testing function
 
@@ -273,15 +190,16 @@ def test(
     net: torch.nn.Module,
     testloader: torch.utils.data.DataLoader,
     device: torch.device,  # pylint: disable=no-member
+    epoch,
 ) -> Tuple[float, float]:
     """Validate the network on the entire test set."""
-
+    global global_step
+    
     running_loss = 0.0
     it = 0
     correct = 0
     total = 0
-    predictions = {}
-    probabilities = {}
+    criterion = torch.nn.CrossEntropyLoss()
 
     with torch.no_grad():
         pbar = tqdm(testloader, unit="audios", unit_scale=testloader.batch_size)
@@ -291,24 +209,24 @@ def test(
             targets = batch['target']
 
             n = inputs.size(0)
-            inputs = Variable(inputs, volatile = True)
-            targets = Variable(targets, requires_grad=False)
+            #inputs = Variable(inputs, volatile = True)
+            #targets = Variable(targets, requires_grad=False)
 
             if use_gpu:
                 inputs = inputs.cuda()
                 targets = targets.cuda(non_blocking=True)
 
             # forward
-            criterion = nn.CrossEntropyLoss()
+
             outputs = net(inputs)
             loss = criterion(outputs, targets)
-            #outputs = torch.nn.functional.softmax(outputs, dim=1)
 
             # statistics
             it += 1
             running_loss += loss.item()
-            pred = outputs.data.max(1, keepdim=True)[1]
-            correct += pred.eq(targets.data.view_as(pred)).sum()
+            _, predicted = torch.max(outputs.data, 1) # pylint: disable=no-member
+            #pred = outputs.data.max(1, keepdim=True)[1]
+            correct += (predicted == targets).sum().item()
             total += targets.size(0)
             #filenames = batch['path']
 
@@ -320,9 +238,19 @@ def test(
         """
     accuracy = correct/total
     epoch_loss = running_loss / it
-
+    print('test accuracy=', accuracy)
 
     return epoch_loss, accuracy
 
-epoch_loss, accuracy = test(model,testloader,device)           
 
+print("training %s for Google speech commands..." % args.model)
+for epoch in range(0, args.max_epochs):
+    print('epoch = ', epoch)
+    lr_scheduler.step()
+    train(epoch)
+    valid(epoch)
+    epoch_loss_test, accuracy = test(model,testloader,device,epoch)     
+    #time_elapsed = time.time() - since
+    #time_str = 'total time elapsed: {:.0f}h {:.0f}m {:.0f}s '.format(time_elapsed // 3600, time_elapsed % 3600 // 60, time_elapsed % 60)
+    #print("%s, best accuracy: %.02f%%, best loss %f" % (time_str, 100*best_accuracy, best_loss))
+print("finished raining")
