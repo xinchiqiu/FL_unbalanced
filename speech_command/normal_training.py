@@ -11,11 +11,9 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import WeightedRandomSampler
 import torchvision
 from torchvision.transforms import *
-from tensorboardX import SummaryWriter
 import models
 from datasets import *
 from transforms import *
-from mixup import *
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--train-dataset", type=str, default='datasets/speech_commands/train', help='path of train dataset')
@@ -72,9 +70,41 @@ testloader = DataLoader(testset, batch_size=args.batch_size, sampler=None,
                             pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
 
 
-# set up model
-model = models.create_model(model_name=args.model, num_classes=len(CLASSES), in_channels=1)
+
+# LSTM model:https://github.com/felixchenfy/Speech-Commands-Classification-by-LSTM-PyTorch
+# https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/recurrent_neural_network/main.py
+class RNN(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes):#, device):
+        super(RNN, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, num_classes)
+        #self.device = device
+
+    def forward(self, x):
+        # Set initial hidden and cell states
+        batch_size = x.size(0)
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)#.to(self.device) 
+        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)#.to(self.device) 
+        
+        # Forward propagate LSTM
+        out, _ = self.lstm(x, (h0, c0))  # shape = (batch_size, seq_length, hidden_size)
+        
+        # Decode the hidden state of the last time step
+        out = self.fc(out[:, -1, :])
+        return out
+
+
+
+# set up model, in_channel = 1 for others, in_channel = n_mels for LSTM
+#model = models.create_model(model_name="LSTM", num_classes=len(CLASSES), in_channels=n_mels)
+
+model = RNN(input_size=n_mels,hidden_size = 64, num_layers = 3, num_classes=len(CLASSES))#,device= device)
 model.to(device)
+
+
+
 optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=args.weight_decay)
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=-1)
 criterion = torch.nn.CrossEntropyLoss()
@@ -100,10 +130,13 @@ def train(epoch):
     pbar = tqdm(train_dataloader, unit="audios", unit_scale=train_dataloader.batch_size)
     for batch in pbar:
         inputs = batch['input']
-        inputs = torch.unsqueeze(inputs, 1)
+        #inputs = torch.unsqueeze(inputs, 1)
         targets = batch['target']
-
-    
+        
+        # reshape input for LSTM  
+        inputs = inputs.reshape(-1, n_mels, n_mels).to(device)
+        
+        
         inputs = Variable(inputs, requires_grad=True)
         targets = Variable(targets, requires_grad=False)
 
@@ -152,9 +185,12 @@ def valid(epoch):
     pbar = tqdm(valid_dataloader, unit="audios", unit_scale=valid_dataloader.batch_size)
     for batch in pbar:
         inputs = batch['input']
-        inputs = torch.unsqueeze(inputs, 1)
+        #inputs = torch.unsqueeze(inputs, 1)
         targets = batch['target']
 
+        # reshape for LSTM 
+        inputs = inputs.reshape(-1, n_mels, n_mels).to(device)
+        
         inputs = Variable(inputs, volatile = True)
         targets = Variable(targets, requires_grad=False)
 
@@ -204,9 +240,14 @@ def test(
         pbar = tqdm(testloader, unit="audios", unit_scale=testloader.batch_size)
         for batch in pbar:
             inputs = batch['input']
-            inputs = torch.unsqueeze(inputs, 1)
+            #inputs = torch.unsqueeze(inputs, 1)
             targets = batch['target']
 
+
+            # reshape for LSTM
+
+            inputs = inputs.reshape(-1, n_mels, n_mels).to(device)
+            
             n = inputs.size(0)
             #inputs = Variable(inputs, volatile = True)
             #targets = Variable(targets, requires_grad=False)

@@ -1,12 +1,13 @@
 from typing import List, Optional, Tuple, cast
-
 import numpy as np
-
+from torch.utils.data import Dataset
+from torch.utils.data.sampler import WeightedRandomSampler
 XY = Tuple[np.ndarray, np.ndarray]
 XYList = List[XY]
 PartitionedDataset = Tuple[XYList, XYList]
 
 np.random.seed(2020)
+CLASSES = 'unknown, silence, yes, no, up, down, left, right, on, off, stop, go'.split(', ')
 
 def float_to_int(i: float) -> int:
     """Return float as int but raise if decimal is dropped."""
@@ -15,7 +16,6 @@ def float_to_int(i: float) -> int:
 
     return int(i)
 
-
 def sort_by_label(x: np.ndarray, y: np.ndarray) -> XY:
     """Sort by label.
     Assuming two labels and four examples the resulting label order
@@ -23,7 +23,6 @@ def sort_by_label(x: np.ndarray, y: np.ndarray) -> XY:
     """
     idx = np.argsort(y, axis=0).reshape((y.shape[0]))
     return (x[idx], y[idx])
-
 
 def sort_by_label_repeating(x: np.ndarray, y: np.ndarray) -> XY:
     """Sort by label in repeating groups. Assuming two labels and four examples
@@ -66,7 +65,6 @@ def split_at_fraction(x: np.ndarray, y: np.ndarray, fraction: float) -> Tuple[XY
     x_1, y_1 = x[splitting_index:], y[splitting_index:]
     return (x_0, y_0), (x_1, y_1)
 
-
 def shuffle(x: np.ndarray, y: np.ndarray) -> XY:
     """Shuffle x and y."""
     idx = np.random.permutation(len(x))
@@ -85,7 +83,6 @@ def combine_partitions(xy_list_0: XYList, xy_list_1: XYList) -> XYList:
         for (x_0, y_0), (x_1, y_1) in zip(xy_list_0, xy_list_1)
     ]
 
-
 def shift(x: np.ndarray, y: np.ndarray) -> XY:
     """Shift x_1, y_1 so that the first half contains only labels 0 to 4 and
     the second half 5 to 9."""
@@ -95,7 +92,6 @@ def shift(x: np.ndarray, y: np.ndarray) -> XY:
     (x_0, y_0), (x_1, y_1) = shuffle(x_0, y_0), shuffle(x_1, y_1)
     x, y = np.concatenate([x_0, x_1], axis=0), np.concatenate([y_0, y_1], axis=0)
     return x, y
-
 
 def create_partitions(
     unpartitioned_dataset: XY,
@@ -124,7 +120,6 @@ def create_partitions(
     # Adjust x and y shape
     return [adjust_xy_shape(xy) for xy in xy_partitions]
 
-
 def create_partitioned_dataset(
     keras_dataset: Tuple[XY, XY],
     iid_fraction: float,
@@ -150,7 +145,6 @@ def create_partitioned_dataset(
 
     return (xy_train_partitions, xy_test_partitions), adjust_xy_shape(xy_test)
 
-
 def log_distribution(xy_partitions: XYList) -> None:
     """Print label distribution for list of paritions."""
     distro = [np.unique(y, return_counts=True) for _, y in xy_partitions]
@@ -167,7 +161,6 @@ def adjust_xy_shape(xy: XY) -> XY:
         y = adjust_y_shape(y)
     return (x, y)
 
-
 def adjust_x_shape(nda: np.ndarray) -> np.ndarray:
     """Turn shape (x, y, z) into (x, y, z, 1)."""
     nda_adjusted = np.reshape(nda, (nda.shape[0], nda.shape[1], nda.shape[2], 1))
@@ -178,7 +171,6 @@ def adjust_y_shape(nda: np.ndarray) -> np.ndarray:
     """Turn shape (x, 1) into (x)."""
     nda_adjusted = np.reshape(nda, (nda.shape[0]))
     return cast(np.ndarray, nda_adjusted)
-
 
 def create_dla_partitions(
     dataset: XY,
@@ -322,5 +314,22 @@ class dataset_afterpartition(Dataset):
 
         return x, y
     
+    def make_weights_for_balanced_classes(self):
+        """adopted from https://discuss.pytorch.org/t/balanced-sampling-between-classes-with-torchvision-dataloader/2703/3"""
 
-#trainset_first = dataset_afterpartition(client_id = int(0),num_partitions=10,partitions=partitions,trainset=trainset)
+        nclasses = 12
+        count = np.zeros(nclasses)
+
+        for item in self.label:
+            count[item] += 1
+        weight_per_class= [0.] * nclasses
+
+        N = float(sum(count))
+        for i in range(nclasses):
+            weight_per_class[i] = N / float(count[i])
+
+        weight = np.zeros(len(self.idx))
+        for index, item in enumerate(self.idx):
+            idx_class = self.label[index]
+            weight[index] = weight_per_class[idx_class]
+        return weight
