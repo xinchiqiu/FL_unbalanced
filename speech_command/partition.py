@@ -322,14 +322,19 @@ class dataset_afterpartition(Dataset):
 
         for item in self.label:
             count[item] += 1
-        weight_per_class= [0.] * nclasses
-
+        weight_per_class= np.zeros(nclasses)
+        
         N = float(sum(count))
         for i in range(nclasses):
-            weight_per_class[i] = N / float(count[i])
+            if count[i] == 0:
+                weight_per_class[i] = 0
+            else:
+                weight_per_class[i] = N / float(count[i])
 
         weight = np.zeros(len(self.idx))
-        for index, item in enumerate(self.idx):
-            idx_class = self.label[index]
-            weight[index] = weight_per_class[idx_class]
+        #for index, item in enumerate(self.idx):
+        for i in range(len(self.label)):
+            #idx_class = self.label[index]
+            #weight[index] = weight_per_class[idx_class]
+            weight[i] = weight_per_class[self.label[i]]
         return weight
