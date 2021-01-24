@@ -80,7 +80,7 @@ class RNN(nn.Module):
         self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
-        #self.device = device
+        self.device = device
 
     def forward(self, x):
         # Set initial hidden and cell states
