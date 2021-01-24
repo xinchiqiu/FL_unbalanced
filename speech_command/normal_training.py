@@ -74,7 +74,7 @@ testloader = DataLoader(testset, batch_size=args.batch_size, sampler=None,
 # LSTM model:https://github.com/felixchenfy/Speech-Commands-Classification-by-LSTM-PyTorch
 # https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/recurrent_neural_network/main.py
 class RNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes), device):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes, device):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
