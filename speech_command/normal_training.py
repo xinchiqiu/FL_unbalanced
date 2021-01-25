@@ -29,7 +29,7 @@ parser.add_argument("--learning-rate", type=float, default=1e-4, help='learning 
 parser.add_argument("--lr-scheduler-patience", type=int, default=5, help='lr scheduler plateau: Number of epochs with no improvement after which learning rate will be reduced')
 parser.add_argument("--lr-scheduler-step-size", type=int, default=50, help='lr scheduler step: number of epochs of learning rate decay.')
 parser.add_argument("--lr-scheduler-gamma", type=float, default=0.1, help='learning rate is multiplied by the gamma to decrease it')
-parser.add_argument("--max-epochs", type=int, default=20, help='max number of epochs')
+parser.add_argument("--max-epochs", type=int, default=100, help='max number of epochs')
 parser.add_argument("--resume", type=str, help='checkpoint file to resume')
 parser.add_argument("--model", choices=models.available_models, default=models.available_models[0], help='model of NN')
 parser.add_argument("--input", choices=['mel32'], default='mel32', help='input of NN')
