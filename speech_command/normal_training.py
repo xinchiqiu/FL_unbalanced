@@ -30,7 +30,7 @@ parser.add_argument("--lr-scheduler-patience", type=int, default=5, help='lr sch
 parser.add_argument("--lr-scheduler-step-size", type=int, default=50, help='lr scheduler step: number of epochs of learning rate decay.')
 parser.add_argument("--lr-scheduler-gamma", type=float, default=0.1, help='learning rate is multiplied by the gamma to decrease it')
 parser.add_argument("--max-epochs", type=int, default=100, help='max number of epochs')
-parser.add_argument("--resume", type=str, help='checkpoint file to resume')
+#parser.add_argument("--resume", type=str, help='checkpoint file to resume')
 parser.add_argument("--model", choices=models.available_models, default=models.available_models[0], help='model of NN')
 parser.add_argument("--input", choices=['mel32'], default='mel32', help='input of NN')
 #parser.add_argument('--mixup', action='store_true', help='use mixup')
@@ -73,26 +73,25 @@ testloader = DataLoader(testset, batch_size=args.batch_size, sampler=None,
 
 # LSTM model:https://github.com/felixchenfy/Speech-Commands-Classification-by-LSTM-PyTorch
 # https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/recurrent_neural_network/main.py
+# remove all *2 if set bidirectional = false
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, num_classes, device):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        #self.embeddings = nn.Embedding(input_size,embedding_dim,padding_idx = 0)
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, num_classes)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, bidirectional=True, batch_first=True)
+        self.fc = nn.Linear(hidden_size*2, num_classes)
         self.device = device
 
     def forward(self, x):
-        #x = self.embeddings(x)
 
         # Set initial hidden and cell states
         batch_size = x.size(0)
-        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(device)
-        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(device)
+        h0 = torch.zeros(self.num_layers*2, batch_size, self.hidden_size).to(device)
+        c0 = torch.zeros(self.num_layers*2, batch_size, self.hidden_size).to(device)
         
         # Forward propagate LSTM
-        out, _ = self.lstm(x, (h0.detach(), c0.detach()))  # shape = (batch_size, seq_length, hidden_size)
+        out, _ = self.lstm(x, (h0,c0))  # shape = (batch_size, seq_length, hidden_size)
         
         # Decode the hidden state of the last time step
         out = self.fc(out[:, -1, :])
