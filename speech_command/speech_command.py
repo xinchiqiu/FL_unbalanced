@@ -134,7 +134,6 @@ def train(
         # pbar = tqdm(trainloader, unit="audios", unit_scale=trainloader.batch_size, desc= 'Train')
         for batch in trainloader:
             inputs = batch[0]
-            # print(f"inputs.shape: {inputs.shape}")
             #inputs = batch['input']
             #inputs = torch.unsqueeze(inputs, 1) # adding extra (channel) dimension
             
@@ -237,7 +236,8 @@ def test(
             _, predicted = torch.max(outputs.data, 1)  # pylint: disable=no-member
             #pred = outputs.data.max(1, keepdim=True)[1]
             #correct += pred.eq(targets.data.view_as(pred)).sum()
-            correct += (predicted == targets).sum().item()
+            correct += (targets == predicted.squeeze()).sum().item()
+            #correct += (predicted == targets).sum().item()
             total += targets.size(0)
             #filenames = batch['path']
         
