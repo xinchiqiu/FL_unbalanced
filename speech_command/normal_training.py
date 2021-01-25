@@ -78,15 +78,18 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+        #self.embeddings = nn.Embedding(input_size,embedding_dim,padding_idx = 0)
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
         self.device = device
 
     def forward(self, x):
+        #x = self.embeddings(x)
+
         # Set initial hidden and cell states
         batch_size = x.size(0)
-        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).requires_grad_().to(device)
-        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).requires_grad_().to(device)
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(device)
+        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(device)
         
         # Forward propagate LSTM
         out, _ = self.lstm(x, (h0.detach(), c0.detach()))  # shape = (batch_size, seq_length, hidden_size)
@@ -100,11 +103,11 @@ class RNN(nn.Module):
 # set up model, in_channel = 1 for others, in_channel = n_mels for LSTM
 #model = models.create_model(model_name="LSTM", num_classes=len(CLASSES), in_channels=n_mels)
 
-model = RNN(input_size=n_mels,hidden_size = 256, num_layers = 3, num_classes=len(CLASSES),device= device)
+model = RNN(input_size=n_mels, hidden_size = 256, num_layers = 3, num_classes=len(CLASSES),device= device)
 model.to(device)
 
 
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=1e-2)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-2)
 #optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=args.weight_decay)
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=-1)
 criterion = torch.nn.CrossEntropyLoss()
