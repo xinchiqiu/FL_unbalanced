@@ -13,21 +13,19 @@
 # limitations under the License.
 # ==============================================================================
 """Flower client example using PyTorch for Speech Command dataset."""
-
 import argparse
 import timeit
 
 import torch
-import torchvision
 import numpy as np
 import flwr as fl
 from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, ParametersRes, Weights
 
 #from . import DEFAULT_SERVER_ADDRESS, speech_command, partition
 from speech_command import load_trainset, load_testset, train, test, load_model
-from partition import create_dla_partitions, log_distribution,dataset_afterpartition
-
-
+from partition import create_dla_partitions, log_distribution, dataset_afterpartition
+from torch.utils.data.sampler import WeightedRandomSampler
+from collections import OrderedDict
 DEFAULT_SERVER_ADDRESS = "[::]:8080"
 # pylint: disable=no-member
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -52,9 +50,8 @@ def set_weights(model: torch.nn.ModuleList, weights: fl.common.Weights) -> None:
     )
     model.load_state_dict(state_dict, strict=True)
 
-
 class SpeechCommandClient(fl.client.Client):
-    """Flower client implementing CIFAR-10 image classification using PyTorch."""
+    """Flower client implementing using PyTorch."""
 
     def __init__(
         self,
@@ -74,7 +71,7 @@ class SpeechCommandClient(fl.client.Client):
         weights: Weights = get_weights(self.model)
         parameters = fl.common.weights_to_parameters(weights)
         return ParametersRes(parameters=parameters)
-
+    
     def fit(self, ins: FitIns) -> FitRes:
         print(f"Client {self.cid}: fit")
 
@@ -85,15 +82,18 @@ class SpeechCommandClient(fl.client.Client):
         # Get training config
         epochs = int(config["epochs"])
         batch_size = int(config["batch_size"])
-        num_workers = 6
+        num_workers = 0
 
         # Set model parameters
         set_weights(self.model,weights)
 
         # Train model
-        trainloader = torch.utils.data.DataLoader(self.trainset, batch_size=batch_size, sampler=None,
+        weights = self.trainset.make_weights_for_balanced_classes()
+        sampler = WeightedRandomSampler(weights, len(weights))
+
+        trainloader = torch.utils.data.DataLoader(self.trainset, batch_size=batch_size, sampler=sampler,
                               pin_memory=use_gpu, num_workers=num_workers)
-        speech_command.train(self.model, trainloader, epochs=epochs, device=DEVICE)
+        train(self.model, trainloader, epochs=epochs, device=DEVICE)
 
         # Return the refined weights and the number of examples used for training
         weights_prime: Weights = get_weights(self.model)
@@ -106,7 +106,7 @@ class SpeechCommandClient(fl.client.Client):
             num_examples_ceil=num_examples_train,
             fit_duration=fit_duration,
         )
-
+    
     def evaluate(self, ins: EvaluateIns) -> EvaluateRes:
         print(f"Client {self.cid}: evaluate")
 
@@ -118,16 +118,15 @@ class SpeechCommandClient(fl.client.Client):
         # Evaluate the updated model on the local dataset
         testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, sampler=None, pin_memory=use_gpu, num_workers=num_workers)
 
-        loss, accuracy = speech_command.test(self.model, testloader, device=DEVICE)
+        loss, accuracy = test(self.model, testloader, device=DEVICE)
 
         # Return the number of evaluation examples and the evaluation result (loss)
         return EvaluateRes(
             num_examples=len(self.testset), loss=float(loss), accuracy=float(accuracy)
         )
 
-
 def main() -> None:
-    """Load data, create and start CifarClient."""
+    """Load data, create and start SpeechCommandClient."""
     parser = argparse.ArgumentParser(description="Flower")
     parser.add_argument(
         "--server_address",
@@ -151,11 +150,11 @@ def main() -> None:
     parser.add_argument(
         "--concentration",
         type=float,
-        default = 0.5,.
+        default = 0.5,
         help="concentration for LDA alpha",
     )
     args = parser.parse_args()
-
+    
     # Configure logger
     fl.common.logger.configure(f"client_{args.cid}", host=args.log_host)
 
@@ -172,7 +171,9 @@ def main() -> None:
 
     partitions, _ = create_dla_partitions(dataset,np.empty(0),args.num_partitions, args.concentration)
     trainset_after_partition = dataset_afterpartition(client_id = args.cid,num_partitions = args.num_partitions,partitions=partitions,trainset=trainset)
-    
+    #weights = trainset_after_partition.make_weights_for_balanced_classes()
+    #sampler = WeightedRandomSampler(weights, len(weights))
+
     # Start client
     client = SpeechCommandClient(args.cid, model, trainset_after_partition, testset)
     fl.client.start_client(args.server_address, client)
