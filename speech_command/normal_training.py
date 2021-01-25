@@ -104,8 +104,8 @@ model = RNN(input_size=n_mels,hidden_size = 256, num_layers = 3, num_classes=len
 model.to(device)
 
 
-
-optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=args.weight_decay)
+optimizer = torch.optim.Adam(net.parameters(), lr=0.01, weight_decay=1e-2)
+#optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=args.weight_decay)
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=-1)
 criterion = torch.nn.CrossEntropyLoss()
 
