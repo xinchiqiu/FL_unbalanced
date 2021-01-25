@@ -178,24 +178,6 @@ def create_dla_partitions(
     num_partitions: int = 100,
     concentration: float = 0.5,
 ) -> Tuple[np.ndarray, XYList]:
-    """Create ibalanced non-iid partitions using Dirichlet Latent
-    Allocation(LDA) without resampling.
-    Args:
-        dataset (XY): Datasets containing samples X
-            and labels Y.
-        dirichlet_dist (numpy.ndarray, optional): previously generated distribution to
-            be used. This s useful when applying the same distribution for train and
-            validation sets.
-        num_partitions (int, optional): Number of partitions to be created.
-            Defaults to 100.
-        concentration (float, optional): Dirichlet Concentration (:math:`\\alpha`)
-            parameter.
-            An :math:`\\alpha \\to \\Inf` generates uniform distributions over classes.
-            An :math:`\\alpha \\to 0.0` generates on class per client. Defaults to 0.5.
-    Returns:
-        Tuple[numpy.ndarray, XYList]: List of XYList containing partitions
-            for each dataset.
-    """
 
     x, y = dataset
     x, y = shuffle(x, y)
@@ -219,6 +201,14 @@ def create_dla_partitions(
                 f"""The value in `num_partitions` ({num_partitions})
                 differs from the one from `dirichlet_dist` {dist_num_partitions}."""
             )
+    
+    # count the number of data in each class
+    count = np.zeros(len(classes))
+    for item in y:
+        count[item] += 1
+
+    for i in range(len(classes)):
+        count[i] = count[i]/x.shape[0]
 
     # Assuming balanced distribution
     num_samples = x.shape[0]
@@ -231,12 +221,20 @@ def create_dla_partitions(
         x_l[boundaries[idx] : boundaries[idx + 1]] # noqa: E203
         for idx in range(num_classes)  # noqa: E203
     ]
+    
+    # change here for the prior
+    alpha = np.zeros(len(classes))
+    for i in range(len(alpha)):
+        alpha[i] = concentration * count[i] * len(classes) # times len(classes) to make sure that if balanced dataset
+        #alpha= concentration
 
     if dirichlet_dist.size == 0:
         dirichlet_dist = np.random.dirichlet(
-            alpha=[concentration] * num_classes, size=num_partitions
+            alpha=alpha, size=num_partitions
         )
     original_dirichlet_dist = dirichlet_dist.copy()
+
+
 
     data: List[List[Optional[np.ndarray]]] = [[] for _ in range(num_partitions)]
     target: List[List[Optional[np.ndarray]]] = [[] for _ in range(num_partitions)]
@@ -323,7 +321,7 @@ class dataset_afterpartition(Dataset):
         for item in self.label:
             count[item] += 1
         weight_per_class= np.zeros(nclasses)
-        
+
         N = float(sum(count))
         for i in range(nclasses):
             if count[i] == 0:
