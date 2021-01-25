@@ -19,7 +19,7 @@
 #cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"/../../../
 
 SERVER_ADDRESS="[::]:8080"
-NUM_CLIENTS=1
+NUM_CLIENTS=2
 
 
 echo "Starting $NUM_CLIENTS clients."
@@ -30,7 +30,7 @@ do
       --cid=$i \
       --server_address=$SERVER_ADDRESS \
       --num_partitions=$NUM_CLIENTS \
-      --concentration=0.5 &
+      --concentration=1000 &
 
 done
 echo "Started $NUM_CLIENTS clients."

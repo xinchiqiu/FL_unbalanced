@@ -101,7 +101,7 @@ class RNN(nn.Module):
 
 def load_model():
     #model = models.create_model(model_name=models.available_models[0], num_classes=len(CLASSES), in_channels=n_mels)
-    model = RNN(input_size=n_mels,hidden_size = 64, num_layers = 3, num_classes=len(CLASSES),device= device)
+    model = RNN(input_size=n_mels,hidden_size = 256, num_layers = 3, num_classes=len(CLASSES),device= device)
     return model
 
 def train(
