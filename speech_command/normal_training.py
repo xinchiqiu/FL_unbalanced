@@ -210,8 +210,8 @@ def valid(epoch):
         it += 1
         global_step += 1
         running_loss += loss.item()
-        _, predicted = torch.max(outputs.data, 1)
-        correct += (predicted == targets).sum().item()
+        _, argmax = torch.max(outputs, 1)
+        correct += (targets == argmax.squeeze()).sum().item()
         total += targets.size(0)
 
          # update the progress bar
