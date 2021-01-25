@@ -76,22 +76,22 @@ def load_testset():
 # LSTM model:https://github.com/felixchenfy/Speech-Commands-Classification-by-LSTM-PyTorch
 # https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/recurrent_neural_network/main.py
 class RNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes,device):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
-        #self.device = device
+        
 
     def forward(self, x):
         # Set initial hidden and cell states
         batch_size = x.size(0)
-        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device) 
-        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device) 
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).requires_grad_()
+        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).requires_grad_()
         
         # Forward propagate LSTM
-        out, _ = self.lstm(x, (h0, c0))  # shape = (batch_size, seq_length, hidden_size)
+        out, _ = self.lstm(x, (h0.detach(), c0.detach())) # shape = (batch_size, seq_length, hidden_size)
         
         # Decode the hidden state of the last time step
         out = self.fc(out[:, -1, :])
@@ -101,7 +101,7 @@ class RNN(nn.Module):
 
 def load_model():
     #model = models.create_model(model_name=models.available_models[0], num_classes=len(CLASSES), in_channels=n_mels)
-    model = RNN(input_size=n_mels,hidden_size = 256, num_layers = 3, num_classes=len(CLASSES),device= device)
+    model = RNN(input_size=n_mels,hidden_size = 256, num_layers = 3, num_classes=len(CLASSES))
     return model
 
 def train(
