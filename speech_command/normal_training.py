@@ -159,8 +159,9 @@ def train(epoch):
         global_step += 1
         running_loss += loss.item()
         pred = outputs.data.max(1, keepdim=True)[1]
-        
-        correct += pred.eq(targets.data.view_as(pred)).sum().item()
+        _, argmax = torch.max(outputs, 1)
+        correct += (targets == argmax.squeeze()).sum().item()
+        #correct += pred.eq(targets.data.view_as(pred)).sum().item()
         total += targets.size(0)
 
 
@@ -286,7 +287,7 @@ def test(
     return epoch_loss, accuracy
 
 
-print("training %s for Google speech commands..." % args.model)
+#print("training %s for Google speech commands..." % args.model)
 for epoch in range(0, args.max_epochs):
     print('epoch = ', epoch)
     lr_scheduler.step()
