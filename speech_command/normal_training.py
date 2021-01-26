@@ -20,7 +20,7 @@ parser.add_argument("--train-dataset", type=str, default='datasets/speech_comman
 parser.add_argument("--valid-dataset", type=str, default='datasets/speech_commands/valid', help='path of validation dataset')
 parser.add_argument("--background-noise", type=str, default='datasets/speech_commands/train/_background_noise_', help='path of background noise')
 parser.add_argument("--comment", type=str, default='', help='comment in tensorboard title')
-parser.add_argument("--batch-size", type=int, default=128, help='batch size')
+parser.add_argument("--batch-size", type=int, default=64, help='batch size')
 parser.add_argument("--dataload-workers-nums", type=int, default=6, help='number of workers for dataloader')
 parser.add_argument("--weight-decay", type=float, default=1e-2, help='weight decay')
 parser.add_argument("--optim", choices=['sgd', 'adam'], default='sgd', help='choices of optimization algorithms')
@@ -39,7 +39,7 @@ args = parser.parse_args()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 use_gpu = torch.cuda.is_available()
 n_mels = 32
-
+batch_size = 64
 # get the data
 data_aug_transform = Compose([ChangeAmplitude(), ChangeSpeedAndPitchAudio(), FixAudioLength(), ToSTFT(), StretchAudioOnSTFT(), TimeshiftAudioOnSTFT(), FixSTFTDimension()])
 bg_dataset = BackgroundNoiseDataset(args.background_noise, data_aug_transform)
@@ -57,16 +57,16 @@ valid_dataset = SpeechCommandsDataset(args.valid_dataset,
                                          valid_feature_transform]))
 weights = trainset.make_weights_for_balanced_classes()
 sampler= WeightedRandomSampler(weights, len(weights))
-train_dataloader = DataLoader(trainset, batch_size=args.batch_size, sampler=sampler,
+train_dataloader = DataLoader(trainset, batch_size=batch_size, sampler=sampler,
                              pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
-valid_dataloader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False,
+valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False,
                               pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
 
 feature_transform = Compose([ToMelSpectrogram(n_mels=n_mels), ToTensor('mel_spectrogram', 'input')])
 transform = Compose([LoadAudio(), FixAudioLength(), feature_transform])
 dataset_dir = 'datasets/speech_commands/test'
 testset = SpeechCommandsDataset(dataset_dir, transform, silence_percentage=0)
-testloader = DataLoader(testset, batch_size=args.batch_size, sampler=None,
+testloader = DataLoader(testset, batch_size=batch_size, sampler=None,
                             pin_memory=use_gpu, num_workers=args.dataload_workers_nums)
 
 
@@ -80,7 +80,8 @@ class RNN(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, bidirectional=True, batch_first=True)
-        self.fc = nn.Linear(hidden_size*2, num_classes)
+        self.fc1 = nn.Linear(hidden_size*2, num_classes)
+        #self.fc2 = nn.Linear(64,num_classes)
         self.device = device
 
     def forward(self, x):
@@ -94,15 +95,15 @@ class RNN(nn.Module):
         out, _ = self.lstm(x, (h0,c0))  # shape = (batch_size, seq_length, hidden_size)
         
         # Decode the hidden state of the last time step
-        out = self.fc(out[:, -1, :])
+        out = self.fc1(out[:, -1, :])
         return out
 
 
 
 # set up model, in_channel = 1 for others, in_channel = n_mels for LSTM
-model = models.create_model(model_name=models.available_models[0], num_classes=len(CLASSES), in_channels=n_mels,device = device)
+#model = models.create_model(model_name=models.available_models[0], num_classes=len(CLASSES), in_channels=n_mels,device = device)
 print(model)
-#model = RNN(input_size=n_mels, hidden_size = 256, num_layers = 3, num_classes=len(CLASSES),device= device)
+model = RNN(input_size=n_mels, hidden_size = 256, num_layers = 2, num_classes=len(CLASSES),device= device)
 model.to(device)
 
 
