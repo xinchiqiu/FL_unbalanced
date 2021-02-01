@@ -106,6 +106,7 @@ class RNN(nn.Module):
 model = RNN(input_size=n_mels, hidden_size = 256, num_layers = 4, num_classes=len(CLASSES),device= device)
 model.to(device)
 print(model)
+print(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=0)
 #optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=args.weight_decay)
