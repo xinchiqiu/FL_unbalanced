@@ -102,14 +102,14 @@ class RNN(nn.Module):
 
 # set up model, in_channel = 1 for others, in_channel = n_mels for LSTM
 #model = models.create_model(model_name=models.available_models[0], num_classes=len(CLASSES), in_channels=n_mels,device = device)
-print(model)
-model = RNN(input_size=n_mels, hidden_size = 256, num_layers = 2, num_classes=len(CLASSES),device= device)
+
+model = RNN(input_size=n_mels, hidden_size = 256, num_layers = 4, num_classes=len(CLASSES),device= device)
 model.to(device)
+print(model)
 
-
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-2)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=0)
 #optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=args.weight_decay)
-lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_scheduler_step_size, gamma=args.lr_scheduler_gamma, last_epoch=-1)
+lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=arg.50, gamma=args.lr_scheduler_gamma, last_epoch=-1)
 criterion = torch.nn.CrossEntropyLoss()
 
 start_epoch = 0
