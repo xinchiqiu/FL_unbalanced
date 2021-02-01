@@ -109,7 +109,7 @@ print(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=0)
 #optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=args.weight_decay)
-lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=arg.50, gamma=args.lr_scheduler_gamma, last_epoch=-1)
+lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=args.lr_scheduler_gamma, last_epoch=-1)
 criterion = torch.nn.CrossEntropyLoss()
 
 start_epoch = 0
